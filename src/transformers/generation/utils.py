@@ -72,6 +72,7 @@ from .stopping_criteria import (
     StoppingCriteriaList,
     validate_stopping_criteria,
 )
+from tqdm import tqdm
 
 
 if TYPE_CHECKING:
@@ -2413,6 +2414,7 @@ class GenerationMixin:
         unfinished_sequences = torch.ones(input_ids.shape[0], dtype=torch.long, device=input_ids.device)
 
         this_peer_finished = False  # used by synced_gpus only
+        pbar = tqdm()
         while True:
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
@@ -2492,12 +2494,14 @@ class GenerationMixin:
             if stopping_criteria(input_ids, scores):
                 this_peer_finished = True
 
+            pbar.update(1)
             if this_peer_finished and not synced_gpus:
                 break
 
         if streamer is not None:
             streamer.end()
 
+        pbar.close()
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
                 return GreedySearchEncoderDecoderOutput(
@@ -2693,6 +2697,7 @@ class GenerationMixin:
 
         this_peer_finished = False  # used by synced_gpus only
         # auto-regressive generation
+        pbar = tqdm()
         while True:
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
@@ -2774,12 +2779,14 @@ class GenerationMixin:
             if stopping_criteria(input_ids, scores):
                 this_peer_finished = True
 
+            pbar.update(1)
             if this_peer_finished and not synced_gpus:
                 break
 
         if streamer is not None:
             streamer.end()
 
+        pbar.close()
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
                 return SampleEncoderDecoderOutput(
@@ -2985,6 +2992,7 @@ class GenerationMixin:
         beam_scores = beam_scores.view((batch_size * num_beams,))
 
         this_peer_finished = False  # used by synced_gpus only
+        pbar = tqdm()
         while True:
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
@@ -3078,7 +3086,7 @@ class GenerationMixin:
 
             # increase cur_len
             cur_len = cur_len + 1
-
+            pbar.update(1)
             if beam_scorer.is_done or stopping_criteria(input_ids, scores):
                 if not synced_gpus:
                     break
@@ -3095,7 +3103,7 @@ class GenerationMixin:
             max_length=stopping_criteria.max_length,
             beam_indices=beam_indices,
         )
-
+        pbar.close()
         if return_dict_in_generate:
             if not output_scores:
                 sequence_outputs["sequence_scores"] = None
@@ -3311,6 +3319,7 @@ class GenerationMixin:
         beam_scores = beam_scores.view((batch_size * num_beams,))
 
         this_peer_finished = False  # used by synced_gpus only
+        pbar = tqdm()
         while True:
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
@@ -3411,7 +3420,7 @@ class GenerationMixin:
 
             # increase cur_len
             cur_len = cur_len + 1
-
+            pbar.update(1)
             if beam_scorer.is_done or stopping_criteria(input_ids, scores):
                 if not synced_gpus:
                     break
@@ -3428,7 +3437,7 @@ class GenerationMixin:
             max_length=stopping_criteria.max_length,
             beam_indices=beam_indices,
         )
-
+        pbar.close()
         if return_dict_in_generate:
             if not output_scores:
                 sequence_outputs["sequence_scores"] = None
@@ -3650,6 +3659,7 @@ class GenerationMixin:
         beam_scores = beam_scores.view((batch_size * num_beams,))
 
         this_peer_finished = False  # used by synced_gpus only
+        pbar = tqdm()
         while True:
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
@@ -3791,7 +3801,7 @@ class GenerationMixin:
 
             # increase cur_len
             cur_len = cur_len + 1
-
+            pbar.update(1)
             if beam_scorer.is_done or stopping_criteria(input_ids, scores):
                 if not synced_gpus:
                     break
@@ -3809,7 +3819,7 @@ class GenerationMixin:
             max_length=stopping_criteria.max_length,
             beam_indices=final_beam_indices,
         )
-
+        pbar.close()
         if return_dict_in_generate:
             if not output_scores:
                 sequence_outputs["sequence_scores"] = None
@@ -4030,6 +4040,7 @@ class GenerationMixin:
         beam_scores = beam_scores.view((batch_size * num_beams,))
 
         this_peer_finished = False  # used by synced_gpus only
+        pbar = tqdm()
         while True:
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
@@ -4121,7 +4132,7 @@ class GenerationMixin:
 
             # increase cur_len
             cur_len = cur_len + 1
-
+            pbar.update(1)
             if constrained_beam_scorer.is_done or stopping_criteria(input_ids, scores):
                 if not synced_gpus:
                     break
@@ -4137,7 +4148,7 @@ class GenerationMixin:
             eos_token_id=eos_token_id,
             max_length=stopping_criteria.max_length,
         )
-
+        pbar.close()
         if return_dict_in_generate:
             if not output_scores:
                 sequence_outputs["sequence_scores"] = None
@@ -4336,6 +4347,7 @@ class GenerationMixin:
         )
 
         this_peer_finished = False  # used by synced_gpus only
+        pbar = tqdm()
         while True:
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
@@ -4553,7 +4565,7 @@ class GenerationMixin:
             model_kwargs = self._update_model_kwargs_for_generation(
                 outputs, model_kwargs, is_encoder_decoder=self.config.is_encoder_decoder
             )
-
+            pbar.udate(1)
             # if eos_token was found in one sentence, set sentence to finished
             if eos_token_id_tensor is not None:
                 unfinished_sequences = unfinished_sequences.mul(
@@ -4576,7 +4588,7 @@ class GenerationMixin:
 
         if streamer is not None:
             streamer.end()
-
+        pbar.close()
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
                 return GreedySearchEncoderDecoderOutput(
